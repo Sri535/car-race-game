@@ -1,70 +1,859 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Turbo Drift Racer</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+/>
+<title>Endless Highway</title>
+
+<meta name="theme-color" content="#111111" />
+
+<style>
+    *{
+        margin:0;
+        padding:0;
+        box-sizing:border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body{
+        width:100%;
+        height:100%;
+        overflow:hidden;
+        background:#111;
+        font-family:Arial, Helvetica, sans-serif;
+        touch-action:none;
+    }
+
+    body{
+        display:flex;
+        justify-content:center;
+        align-items:center;
+    }
+
+    #gameContainer{
+        position:relative;
+        width:100vw;
+        height:100vh;
+        overflow:hidden;
+        background:#1d1d1d;
+    }
+
+    canvas{
+        width:100%;
+        height:100%;
+        display:block;
+        background:#2e2e2e;
+    }
+
+    .hud{
+        position:absolute;
+        top:0;
+        left:0;
+        width:100%;
+        padding:18px;
+        display:flex;
+        justify-content:space-between;
+        align-items:flex-start;
+        color:white;
+        pointer-events:none;
+        z-index:10;
+        text-shadow:0 2px 4px rgba(0,0,0,0.7);
+    }
+
+    .hud h1{
+        font-size:clamp(18px, 2vw, 28px);
+        letter-spacing:2px;
+    }
+
+    .score-box{
+        text-align:right;
+        font-size:clamp(14px, 1.6vw, 22px);
+        line-height:1.6;
+    }
+
+    .menu{
+        position:absolute;
+        inset:0;
+        background:rgba(0,0,0,0.55);
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        flex-direction:column;
+        color:white;
+        z-index:20;
+        text-align:center;
+        padding:20px;
+    }
+
+    .menu.hidden{
+        display:none;
+    }
+
+    .menu h2{
+        font-size:clamp(38px, 6vw, 72px);
+        margin-bottom:12px;
+        letter-spacing:4px;
+    }
+
+    .menu p{
+        max-width:650px;
+        line-height:1.7;
+        opacity:0.9;
+        margin-bottom:25px;
+        font-size:clamp(14px, 1.4vw, 20px);
+    }
+
+    .btn{
+        border:none;
+        outline:none;
+        background:#ffce00;
+        color:#111;
+        padding:16px 34px;
+        border-radius:14px;
+        cursor:pointer;
+        font-weight:bold;
+        font-size:18px;
+        transition:0.2s ease;
+    }
+
+    .btn:hover{
+        transform:translateY(-2px);
+    }
+
+    .mobile-controls{
+        position:absolute;
+        inset:0;
+        pointer-events:none;
+        z-index:15;
+    }
+
+    .touch-zone{
+        position:absolute;
+        top:0;
+        bottom:0;
+        width:50%;
+        pointer-events:auto;
+        opacity:0;
+    }
+
+    .touch-left{
+        left:0;
+    }
+
+    .touch-right{
+        right:0;
+    }
+
+    .touch-indicator{
+        position:absolute;
+        bottom:25px;
+        width:90px;
+        height:90px;
+        border-radius:50%;
+        background:rgba(255,255,255,0.08);
+        border:2px solid rgba(255,255,255,0.15);
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        color:white;
+        font-size:40px;
+        user-select:none;
+        pointer-events:none;
+    }
+
+    .touch-indicator.left{
+        left:20px;
+    }
+
+    .touch-indicator.right{
+        right:20px;
+    }
+
+    @media (hover:hover) and (pointer:fine){
+        .mobile-controls{
+            display:none;
+        }
+    }
+</style>
 </head>
+
 <body>
-  <div class="game-wrapper">
+
+<div id="gameContainer">
     <canvas id="gameCanvas"></canvas>
 
-    <!-- HUD -->
-    <div id="hud">
-      <div class="hud-item">
-        <span class="label">SCORE</span>
-        <span id="score">0</span>
-      </div>
-
-      <div class="hud-item">
-        <span class="label">HIGH SCORE</span>
-        <span id="highScore">0</span>
-      </div>
-
-      <div class="hud-item">
-        <span class="label">SPEED</span>
-        <span id="speed">1</span>
-      </div>
-    </div>
-
-    <!-- Main Menu -->
-    <div id="mainMenu" class="overlay active">
-      <div class="menu-card">
-        <h1>TURBO DRIFT</h1>
-        <p>Dodge traffic. Survive. Set a new high score.</p>
-
-        <button id="startBtn">START GAME</button>
-
-        <div class="controls">
-          <h3>Controls</h3>
-          <p>Desktop: Arrow Keys / A D</p>
-          <p>Mobile: Touch & Drag</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Game Over -->
-    <div id="gameOverMenu" class="overlay">
-      <div class="menu-card">
-        <h1>GAME OVER</h1>
-
-        <div class="result">
-          <p>Final Score</p>
-          <h2 id="finalScore">0</h2>
+    <div class="hud">
+        <div>
+            <h1>ENDLESS HIGHWAY</h1>
         </div>
 
-        <button id="restartBtn">RESTART</button>
-      </div>
+        <div class="score-box">
+            <div>Score: <span id="score">0</span></div>
+            <div>Speed: <span id="speed">1</span>x</div>
+            <div>Near Miss: <span id="near">0</span></div>
+        </div>
     </div>
 
-    <!-- Mobile Controls -->
-    <div id="mobileControls">
-      <button id="leftBtn">◀</button>
-      <button id="rightBtn">▶</button>
-    </div>
-  </div>
+    <div class="menu" id="menu">
+        <h2>ENDLESS HIGHWAY</h2>
 
-  <script src="game.js"></script>
+        <p>
+            Dodge traffic, survive the highway, and score points with risky near misses.
+            Desktop: Arrow Keys / WASD<br/>
+            Mobile: Touch Left or Right side of screen.
+        </p>
+
+        <button class="btn" id="startBtn">START GAME</button>
+    </div>
+
+    <div class="mobile-controls">
+        <div class="touch-zone touch-left" id="leftZone"></div>
+        <div class="touch-zone touch-right" id="rightZone"></div>
+
+        <div class="touch-indicator left">◀</div>
+        <div class="touch-indicator right">▶</div>
+    </div>
+</div>
+
+<script>
+/* =========================================================
+   ENDLESS HIGHWAY
+   Pure HTML5 + CSS3 + Vanilla JS
+   ========================================================= */
+
+/* =========================================================
+   Utilities
+   ========================================================= */
+
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+const random = (min, max) => Math.random() * (max - min) + min;
+
+const lerp = (a, b, t) => a + (b - a) * t;
+
+/* =========================================================
+   Input Manager (Unified Desktop + Mobile)
+   ========================================================= */
+
+class InputManager{
+    constructor(){
+        this.left = false;
+        this.right = false;
+
+        this.initKeyboard();
+        this.initTouch();
+    }
+
+    initKeyboard(){
+        window.addEventListener("keydown", (e)=>{
+            const k = e.key.toLowerCase();
+
+            if(k === "arrowleft" || k === "a"){
+                this.left = true;
+            }
+
+            if(k === "arrowright" || k === "d"){
+                this.right = true;
+            }
+        });
+
+        window.addEventListener("keyup", (e)=>{
+            const k = e.key.toLowerCase();
+
+            if(k === "arrowleft" || k === "a"){
+                this.left = false;
+            }
+
+            if(k === "arrowright" || k === "d"){
+                this.right = false;
+            }
+        });
+    }
+
+    initTouch(){
+        const leftZone = document.getElementById("leftZone");
+        const rightZone = document.getElementById("rightZone");
+
+        const setLeft = (v)=> this.left = v;
+        const setRight = (v)=> this.right = v;
+
+        const bind = (element, start, end)=>{
+            element.addEventListener("touchstart", (e)=>{
+                e.preventDefault();
+                start(true);
+            }, {passive:false});
+
+            element.addEventListener("touchend", (e)=>{
+                e.preventDefault();
+                start(false);
+            }, {passive:false});
+
+            element.addEventListener("touchcancel", (e)=>{
+                e.preventDefault();
+                start(false);
+            }, {passive:false});
+        };
+
+        bind(leftZone, setLeft);
+        bind(rightZone, setRight);
+    }
+}
+
+/* =========================================================
+   Sprite Generator
+   Procedural car generation (No PNG needed)
+   ========================================================= */
+
+function createCarSprite(color, width, height){
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+
+    // Body
+    ctx.fillStyle = color;
+    roundRect(ctx, 0, 0, width, height, 12);
+    ctx.fill();
+
+    // Windshield
+    ctx.fillStyle = "#d9f3ff";
+    roundRect(ctx, width * 0.18, height * 0.18, width * 0.64, height * 0.22, 6);
+    ctx.fill();
+
+    // Rear glass
+    ctx.fillStyle = "#c7ebff";
+    roundRect(ctx, width * 0.18, height * 0.62, width * 0.64, height * 0.15, 6);
+    ctx.fill();
+
+    // Stripes
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    ctx.fillRect(width * 0.48, 0, width * 0.06, height);
+
+    // Tires
+    ctx.fillStyle = "#111";
+
+    ctx.fillRect(-2, 12, 6, 18);
+    ctx.fillRect(width - 4, 12, 6, 18);
+
+    ctx.fillRect(-2, height - 30, 6, 18);
+    ctx.fillRect(width - 4, height - 30, 6, 18);
+
+    // Headlights
+    ctx.fillStyle = "#ffe680";
+    ctx.fillRect(8, 4, 10, 6);
+    ctx.fillRect(width - 18, 4, 10, 6);
+
+    // Tail lights
+    ctx.fillStyle = "#ff3b3b";
+    ctx.fillRect(8, height - 10, 10, 6);
+    ctx.fillRect(width - 18, height - 10, 10, 6);
+
+    return canvas;
+}
+
+function roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+
+    ctx.closePath();
+}
+
+/* =========================================================
+   Car Entity
+   ========================================================= */
+
+class Car{
+    constructor(x, y, width, height, sprite){
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.sprite = sprite;
+    }
+
+    draw(ctx){
+        ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
+    }
+
+    getBounds(){
+        return {
+            left:this.x,
+            right:this.x + this.width,
+            top:this.y,
+            bottom:this.y + this.height
+        };
+    }
+}
+
+/* =========================================================
+   Game Class
+   ========================================================= */
+
+class Game{
+    constructor(canvas){
+        this.canvas = canvas;
+        this.ctx = canvas.getContext("2d");
+
+        this.input = new InputManager();
+
+        this.lastTime = 0;
+
+        this.state = "menu";
+
+        this.score = 0;
+        this.nearMisses = 0;
+
+        this.roadOffset = 0;
+
+        this.enemyCars = [];
+        this.obstacles = [];
+
+        this.spawnTimer = 0;
+        this.obstacleTimer = 0;
+
+        this.baseSpeed = 480;
+        this.worldSpeed = this.baseSpeed;
+
+        this.difficultyTimer = 0;
+
+        this.lanes = 3;
+
+        this.resize();
+
+        window.addEventListener("resize", ()=>this.resize());
+
+        this.createPlayer();
+
+        requestAnimationFrame((t)=>this.gameLoop(t));
+    }
+
+    resize(){
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
+
+        this.roadWidth = this.width * 0.42;
+
+        if(this.width < 700){
+            this.roadWidth = this.width * 0.62;
+        }
+
+        this.roadX = (this.width - this.roadWidth) / 2;
+
+        this.laneWidth = this.roadWidth / this.lanes;
+    }
+
+    createPlayer(){
+        const w = this.width < 700 ? 52 : 64;
+        const h = this.width < 700 ? 96 : 120;
+
+        const sprite = createCarSprite("#00d2ff", 64, 128);
+
+        this.player = new Car(
+            this.width / 2 - w / 2,
+            this.height - h - 40,
+            w,
+            h,
+            sprite
+        );
+
+        this.playerSpeed = 520;
+    }
+
+    start(){
+        this.state = "playing";
+
+        this.score = 0;
+        this.nearMisses = 0;
+
+        this.enemyCars = [];
+        this.obstacles = [];
+
+        this.worldSpeed = this.baseSpeed;
+        this.spawnTimer = 0;
+        this.obstacleTimer = 0;
+        this.difficultyTimer = 0;
+
+        this.createPlayer();
+    }
+
+    gameOver(){
+        this.state = "gameover";
+
+        const menu = document.getElementById("menu");
+        menu.classList.remove("hidden");
+
+        menu.innerHTML = `
+            <h2>GAME OVER</h2>
+            <p>
+                Final Score: ${Math.floor(this.score)}<br/>
+                Near Misses: ${this.nearMisses}
+            </p>
+            <button class="btn" id="restartBtn">PLAY AGAIN</button>
+        `;
+
+        document.getElementById("restartBtn")
+            .addEventListener("click", ()=>{
+                menu.classList.add("hidden");
+                this.start();
+            });
+    }
+
+    spawnEnemy(){
+        const lane = Math.floor(random(0, this.lanes));
+
+        const width = this.width < 700 ? 48 : 60;
+        const height = this.width < 700 ? 88 : 112;
+
+        const x = this.roadX + lane * this.laneWidth + this.laneWidth / 2 - width / 2;
+
+        const colors = [
+            "#ff4d4d",
+            "#ffd400",
+            "#32ff7e",
+            "#ff8c42",
+            "#d980fa",
+            "#ffffff"
+        ];
+
+        const sprite = createCarSprite(
+            colors[Math.floor(random(0, colors.length))],
+            64,
+            128
+        );
+
+        const enemy = new Car(
+            x,
+            -height - 50,
+            width,
+            height,
+            sprite
+        );
+
+        enemy.speed = this.worldSpeed * random(0.92, 1.25);
+        enemy.nearGiven = false;
+
+        this.enemyCars.push(enemy);
+    }
+
+    spawnObstacle(){
+        const lane = Math.floor(random(0, this.lanes));
+
+        const size = random(30, 50);
+
+        const x =
+            this.roadX +
+            lane * this.laneWidth +
+            this.laneWidth / 2 -
+            size / 2;
+
+        this.obstacles.push({
+            x,
+            y:-60,
+            width:size,
+            height:size,
+            speed:this.worldSpeed,
+            rotation:random(0, Math.PI)
+        });
+    }
+
+    update(dt){
+
+        if(this.state !== "playing") return;
+
+        // Difficulty increase
+        this.difficultyTimer += dt;
+
+        this.worldSpeed += dt * 4;
+
+        // Road scrolling
+        this.roadOffset += this.worldSpeed * dt;
+
+        // Player movement
+        let movement = 0;
+
+        if(this.input.left) movement -= 1;
+        if(this.input.right) movement += 1;
+
+        this.player.x += movement * this.playerSpeed * dt;
+
+        // Clamp inside road
+        this.player.x = clamp(
+            this.player.x,
+            this.roadX + 10,
+            this.roadX + this.roadWidth - this.player.width - 10
+        );
+
+        // Spawn enemies
+        this.spawnTimer += dt;
+
+        const spawnRate = Math.max(0.32, 1.1 - this.difficultyTimer * 0.012);
+
+        if(this.spawnTimer > spawnRate){
+            this.spawnEnemy();
+            this.spawnTimer = 0;
+        }
+
+        // Spawn obstacles
+        this.obstacleTimer += dt;
+
+        if(this.obstacleTimer > 2.5){
+            this.spawnObstacle();
+            this.obstacleTimer = 0;
+        }
+
+        // Update enemies
+        for(let i=this.enemyCars.length-1; i>=0; i--){
+
+            const enemy = this.enemyCars[i];
+
+            enemy.y += enemy.speed * dt;
+
+            // Near miss scoring
+            if(!enemy.nearGiven){
+
+                const dx = Math.abs(
+                    (enemy.x + enemy.width/2) -
+                    (this.player.x + this.player.width/2)
+                );
+
+                const dy = enemy.y - this.player.y;
+
+                if(dy > -140 && dy < 20 && dx < 90 && dx > 55){
+                    enemy.nearGiven = true;
+                    this.score += 150;
+                    this.nearMisses++;
+                }
+            }
+
+            if(this.checkCollision(this.player, enemy)){
+                this.gameOver();
+                return;
+            }
+
+            if(enemy.y > this.height + 200){
+                this.enemyCars.splice(i,1);
+            }
+        }
+
+        // Obstacles
+        for(let i=this.obstacles.length-1; i>=0; i--){
+
+            const o = this.obstacles[i];
+
+            o.y += o.speed * dt;
+            o.rotation += dt * 2;
+
+            if(this.checkRectCollision(this.player, o)){
+                this.gameOver();
+                return;
+            }
+
+            if(o.y > this.height + 100){
+                this.obstacles.splice(i,1);
+            }
+        }
+
+        // Distance score
+        this.score += dt * (this.worldSpeed * 0.12);
+
+        // Update HUD
+        document.getElementById("score").textContent =
+            Math.floor(this.score);
+
+        document.getElementById("speed").textContent =
+            (this.worldSpeed / this.baseSpeed).toFixed(1);
+
+        document.getElementById("near").textContent =
+            this.nearMisses;
+    }
+
+    checkCollision(a, b){
+
+        return (
+            a.x < b.x + b.width &&
+            a.x + a.width > b.x &&
+            a.y < b.y + b.height &&
+            a.y + a.height > b.y
+        );
+    }
+
+    checkRectCollision(car, rect){
+
+        return (
+            car.x < rect.x + rect.width &&
+            car.x + car.width > rect.x &&
+            car.y < rect.y + rect.height &&
+            car.y + car.height > rect.y
+        );
+    }
+
+    drawRoad(){
+
+        const ctx = this.ctx;
+
+        // Grass
+        ctx.fillStyle = "#0e7a2f";
+        ctx.fillRect(0,0,this.width,this.height);
+
+        // Road
+        ctx.fillStyle = "#3a3a3a";
+        ctx.fillRect(this.roadX,0,this.roadWidth,this.height);
+
+        // Edge lines
+        ctx.fillStyle = "#ffffff";
+
+        ctx.fillRect(this.roadX,0,6,this.height);
+        ctx.fillRect(this.roadX + this.roadWidth - 6,0,6,this.height);
+
+        // Lane markers
+        ctx.fillStyle = "#e7e7e7";
+
+        const dashHeight = 60;
+        const gap = 40;
+
+        for(let lane=1; lane<this.lanes; lane++){
+
+            const x = this.roadX + lane * this.laneWidth;
+
+            for(let y = -(this.roadOffset % (dashHeight + gap));
+                y < this.height;
+                y += dashHeight + gap){
+
+                ctx.fillRect(x - 4, y, 8, dashHeight);
+            }
+        }
+    }
+
+    drawObstacles(){
+        const ctx = this.ctx;
+
+        for(const o of this.obstacles){
+
+            ctx.save();
+
+            ctx.translate(o.x + o.width/2, o.y + o.height/2);
+            ctx.rotate(o.rotation);
+
+            ctx.fillStyle = "#ff9900";
+
+            ctx.fillRect(
+                -o.width/2,
+                -o.height/2,
+                o.width,
+                o.height
+            );
+
+            ctx.strokeStyle = "#111";
+            ctx.lineWidth = 4;
+
+            ctx.beginPath();
+            ctx.moveTo(-o.width/2, -o.height/2);
+            ctx.lineTo(o.width/2, o.height/2);
+
+            ctx.moveTo(o.width/2, -o.height/2);
+            ctx.lineTo(-o.width/2, o.height/2);
+
+            ctx.stroke();
+
+            ctx.restore();
+        }
+    }
+
+    draw(){
+
+        const ctx = this.ctx;
+
+        ctx.clearRect(0,0,this.width,this.height);
+
+        this.drawRoad();
+
+        // Enemies
+        for(const enemy of this.enemyCars){
+            enemy.draw(ctx);
+        }
+
+        // Obstacles
+        this.drawObstacles();
+
+        // Player
+        this.player.draw(ctx);
+    }
+
+    gameLoop(timestamp){
+
+        const delta = (timestamp - this.lastTime) / 1000;
+        this.lastTime = timestamp;
+
+        // Clamp delta for stability
+        const dt = Math.min(delta, 0.033);
+
+        this.update(dt);
+        this.draw();
+
+        requestAnimationFrame((t)=>this.gameLoop(t));
+    }
+}
+
+/* =========================================================
+   Initialize Game
+   ========================================================= */
+
+const canvas = document.getElementById("gameCanvas");
+
+const game = new Game(canvas);
+
+const menu = document.getElementById("menu");
+
+document.getElementById("startBtn")
+    .addEventListener("click", ()=>{
+        menu.classList.add("hidden");
+        game.start();
+    });
+
+/* =========================================================
+   Optional PWA Manifest Generator
+   ========================================================= */
+
+(function createManifest(){
+
+    const manifest = {
+        name:"Endless Highway",
+        short_name:"Highway",
+        start_url:".",
+        display:"standalone",
+        background_color:"#111111",
+        theme_color:"#111111",
+        orientation:"portrait",
+        icons:[]
+    };
+
+    const blob = new Blob(
+        [JSON.stringify(manifest)],
+        {type:"application/json"}
+    );
+
+    const manifestURL = URL.createObjectURL(blob);
+
+    const link = document.createElement("link");
+
+    link.rel = "manifest";
+    link.href = manifestURL;
+
+    document.head.appendChild(link);
+})();
+</script>
+
 </body>
 </html>

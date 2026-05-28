@@ -1,0 +1,66 @@
+* {
+  width: 60px;
+  height: 100px;
+  background: yellow;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(255,255,0,0.8);
+}
+
+.score-board {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: white;
+  font-size: 24px;
+  z-index: 100;
+}
+
+.start-screen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.9);
+  padding: 40px;
+  border-radius: 20px;
+  text-align: center;
+  color: white;
+  z-index: 200;
+}
+
+.start-screen button {
+  margin-top: 20px;
+  padding: 12px 30px;
+  border: none;
+  background: #ff3b3b;
+  color: white;
+  font-size: 18px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.mobile-controls {
+  position: absolute;
+  bottom: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  z-index: 100;
+}
+
+.mobile-controls button {
+  width: 70px;
+  height: 70px;
+  border: none;
+  border-radius: 50%;
+  font-size: 30px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+
+@media (max-width: 500px) {
+  .game-area {
+    width: 100vw;
+  }
+}

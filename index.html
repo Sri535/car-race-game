@@ -1,34 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Car Race Game</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Velocity Rush</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<div class="game-wrapper">
-  <div class="score-board">
-    Score: <span id="score">0</span>
+  <div class="game-wrapper">
+
+    <!-- HUD -->
+    <div class="hud">
+      <div class="hud-item">
+        <span class="label">Score</span>
+        <span id="score">0</span>
+      </div>
+
+      <div class="hud-item">
+        <span class="label">High Score</span>
+        <span id="highScore">0</span>
+      </div>
+
+      <div class="hud-item">
+        <span class="label">Speed</span>
+        <span id="speed">1</span>
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <canvas id="gameCanvas" width="420" height="720"></canvas>
+
+    <!-- Main Menu -->
+    <div class="overlay active" id="mainMenu">
+      <div class="panel">
+        <h1>VELOCITY RUSH</h1>
+        <p>Dodge traffic. Survive longer. Beat your high score.</p>
+
+        <div class="controls">
+          <div>⬅️ ➡️ Arrow Keys</div>
+          <div>A / D Keys</div>
+        </div>
+
+        <button id="startBtn">START GAME</button>
+      </div>
+    </div>
+
+    <!-- Game Over -->
+    <div class="overlay" id="gameOverMenu">
+      <div class="panel">
+        <h1>GAME OVER</h1>
+
+        <p class="final-score">
+          Score: <span id="finalScore">0</span>
+        </p>
+
+        <button id="restartBtn">RESTART</button>
+      </div>
+    </div>
+
   </div>
 
-  <div class="start-screen" id="startScreen">
-    <h1>Car Race Game</h1>
-    <p>Use Arrow Keys or Touch Buttons</p>
-    <button id="startBtn">Start Game</button>
-  </div>
-
-  <div class="game-area" id="gameArea">
-    <div class="player-car" id="playerCar"></div>
-  </div>
-
-  <div class="mobile-controls">
-    <button id="leftBtn">⬅</button>
-    <button id="rightBtn">➡</button>
-  </div>
-</div>
-
-<script src="script.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

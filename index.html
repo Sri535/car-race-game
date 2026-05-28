@@ -2,63 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Velocity Rush</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Turbo Drift Racer</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
   <div class="game-wrapper">
+    <canvas id="gameCanvas"></canvas>
 
     <!-- HUD -->
-    <div class="hud">
+    <div id="hud">
       <div class="hud-item">
-        <span class="label">Score</span>
+        <span class="label">SCORE</span>
         <span id="score">0</span>
       </div>
 
       <div class="hud-item">
-        <span class="label">High Score</span>
+        <span class="label">HIGH SCORE</span>
         <span id="highScore">0</span>
       </div>
 
       <div class="hud-item">
-        <span class="label">Speed</span>
+        <span class="label">SPEED</span>
         <span id="speed">1</span>
       </div>
     </div>
 
-    <!-- Canvas -->
-    <canvas id="gameCanvas" width="420" height="720"></canvas>
-
     <!-- Main Menu -->
-    <div class="overlay active" id="mainMenu">
-      <div class="panel">
-        <h1>VELOCITY RUSH</h1>
-        <p>Dodge traffic. Survive longer. Beat your high score.</p>
-
-        <div class="controls">
-          <div>⬅️ ➡️ Arrow Keys</div>
-          <div>A / D Keys</div>
-        </div>
+    <div id="mainMenu" class="overlay active">
+      <div class="menu-card">
+        <h1>TURBO DRIFT</h1>
+        <p>Dodge traffic. Survive. Set a new high score.</p>
 
         <button id="startBtn">START GAME</button>
+
+        <div class="controls">
+          <h3>Controls</h3>
+          <p>Desktop: Arrow Keys / A D</p>
+          <p>Mobile: Touch & Drag</p>
+        </div>
       </div>
     </div>
 
     <!-- Game Over -->
-    <div class="overlay" id="gameOverMenu">
-      <div class="panel">
+    <div id="gameOverMenu" class="overlay">
+      <div class="menu-card">
         <h1>GAME OVER</h1>
 
-        <p class="final-score">
-          Score: <span id="finalScore">0</span>
-        </p>
+        <div class="result">
+          <p>Final Score</p>
+          <h2 id="finalScore">0</h2>
+        </div>
 
         <button id="restartBtn">RESTART</button>
       </div>
     </div>
 
+    <!-- Mobile Controls -->
+    <div id="mobileControls">
+      <button id="leftBtn">◀</button>
+      <button id="rightBtn">▶</button>
+    </div>
   </div>
 
   <script src="game.js"></script>

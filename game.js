@@ -8,437 +8,398 @@ const speedEl = document.getElementById("speed");
 const mainMenu = document.getElementById("mainMenu");
 const gameOverMenu = document.getElementById("gameOverMenu");
 
-const finalScoreEl = document.getElementById("finalScore");
-
 const startBtn = document.getElementById("startBtn");
 const restartBtn = document.getElementById("restartBtn");
 
-const GAME_WIDTH = canvas.width;
-const GAME_HEIGHT = canvas.height;
+const finalScoreEl = document.getElementById("finalScore");
 
-const ROAD_LEFT = 60;
-const ROAD_RIGHT = GAME_WIDTH - 60;
+const leftBtn = document.getElementById("leftBtn");
+const rightBtn = document.getElementById("rightBtn");
 
+canvas.width = 480;
+canvas.height = 800;
+
+let gameRunning = false;
 let animationId;
 
-class InputHandler {
-  constructor() {
-    this.keys = {};
+const road = {
+  x: 80,
+  width: 320,
+  lineOffset: 0
+};
 
-    window.addEventListener("keydown", (e) => {
-      this.keys[e.key.toLowerCase()] = true;
-    });
+const keys = {
+  left: false,
+  right: false
+};
 
-    window.addEventListener("keyup", (e) => {
-      this.keys[e.key.toLowerCase()] = false;
-    });
-  }
+let particles = [];
+let enemies = [];
+let spawnTimer = 0;
 
-  left() {
-    return this.keys["arrowleft"] || this.keys["a"];
-  }
-
-  right() {
-    return this.keys["arrowright"] || this.keys["d"];
-  }
-}
+const highScore = localStorage.getItem("turboHighScore") || 0;
+highScoreEl.textContent = highScore;
 
 class Particle {
-  constructor(x, y, color, velocityX, velocityY, size, life) {
+  constructor(x, y, color, size, speedX, speedY, life) {
     this.x = x;
     this.y = y;
     this.color = color;
-    this.velocityX = velocityX;
-    this.velocityY = velocityY;
     this.size = size;
+    this.speedX = speedX;
+    this.speedY = speedY;
     this.life = life;
-    this.maxLife = life;
   }
 
   update() {
-    this.x += this.velocityX;
-    this.y += this.velocityY;
+    this.x += this.speedX;
+    this.y += this.speedY;
     this.life--;
   }
 
   draw() {
-    ctx.save();
-
-    ctx.globalAlpha = this.life / this.maxLife;
-
+    ctx.globalAlpha = this.life / 40;
     ctx.fillStyle = this.color;
 
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 }
 
-class PlayerCar {
-  constructor() {
-    this.width = 48;
+class Car {
+  constructor(x, y, color) {
+    this.x = x;
+    this.y = y;
+    this.width = 50;
     this.height = 90;
-
-    this.x = GAME_WIDTH / 2 - this.width / 2;
-    this.y = GAME_HEIGHT - 140;
-
     this.speed = 7;
-  }
-
-  update(input) {
-    if (input.left()) {
-      this.x -= this.speed;
-      createSmoke(this.x + this.width / 2, this.y + this.height);
-    }
-
-    if (input.right()) {
-      this.x += this.speed;
-      createSmoke(this.x + this.width / 2, this.y + this.height);
-    }
-
-    if (this.x < ROAD_LEFT + 10) {
-      this.x = ROAD_LEFT + 10;
-    }
-
-    if (this.x + this.width > ROAD_RIGHT - 10) {
-      this.x = ROAD_RIGHT - 10 - this.width;
-    }
+    this.color = color;
   }
 
   draw() {
-    // Shadow
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.fillRect(this.x + 4, this.y + 6, this.width, this.height);
-
-    // Main Body
-    ctx.fillStyle = "#00d9ff";
-    roundRect(this.x, this.y, this.width, this.height, 12);
+    // Car Body
+    ctx.fillStyle = this.color;
+    roundRect(ctx, this.x, this.y, this.width, this.height, 10, true);
 
     // Windshield
-    ctx.fillStyle = "#dff6ff";
-    roundRect(this.x + 8, this.y + 12, this.width - 16, 20, 6);
+    ctx.fillStyle = "#bdefff";
+    roundRect(
+      ctx,
+      this.x + 10,
+      this.y + 10,
+      this.width - 20,
+      18,
+      6,
+      true
+    );
 
-    // Roof
-    ctx.fillStyle = "#0b2030";
-    roundRect(this.x + 10, this.y + 34, this.width - 20, 28, 6);
+    // Rear Window
+    roundRect(
+      ctx,
+      this.x + 10,
+      this.y + 60,
+      this.width - 20,
+      15,
+      6,
+      true
+    );
+
+    // Tires
+    ctx.fillStyle = "#111";
+
+    ctx.fillRect(this.x - 5, this.y + 12, 6, 18);
+    ctx.fillRect(this.x + this.width - 1, this.y + 12, 6, 18);
+
+    ctx.fillRect(this.x - 5, this.y + 58, 6, 18);
+    ctx.fillRect(this.x + this.width - 1, this.y + 58, 6, 18);
 
     // Lights
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(this.x + 8, this.y + 6, 8, 8);
-    ctx.fillRect(this.x + this.width - 16, this.y + 6, 8, 8);
+    ctx.fillStyle = "#ffe066";
+
+    ctx.fillRect(this.x + 8, this.y + 4, 8, 6);
+    ctx.fillRect(this.x + this.width - 16, this.y + 4, 8, 6);
 
     ctx.fillStyle = "#ff4040";
-    ctx.fillRect(this.x + 8, this.y + this.height - 12, 8, 8);
-    ctx.fillRect(this.x + this.width - 16, this.y + this.height - 12, 8, 8);
+
+    ctx.fillRect(this.x + 8, this.y + this.height - 8, 8, 6);
+    ctx.fillRect(this.x + this.width - 16, this.y + this.height - 8, 8, 6);
   }
 }
 
-class EnemyCar {
-  constructor(speedMultiplier) {
-    this.width = 46;
-    this.height = 84;
-
-    this.x =
-      ROAD_LEFT +
-      15 +
-      Math.random() * (ROAD_RIGHT - ROAD_LEFT - this.width - 30);
-
-    this.y = -120;
-
-    this.speed = 4 + Math.random() * 4 + speedMultiplier;
-
-    this.color = randomCarColor();
-  }
-
-  update() {
-    this.y += this.speed;
-  }
-
-  draw() {
-    ctx.fillStyle = this.color;
-    roundRect(this.x, this.y, this.width, this.height, 12);
-
-    ctx.fillStyle = "#ffffff";
-    roundRect(this.x + 7, this.y + 10, this.width - 14, 18, 6);
-
-    ctx.fillStyle = "#1d1d1d";
-    roundRect(this.x + 10, this.y + 32, this.width - 20, 24, 6);
-
-    ctx.fillStyle = "#ff5757";
-    ctx.fillRect(this.x + 7, this.y + this.height - 12, 8, 8);
-    ctx.fillRect(this.x + this.width - 15, this.y + this.height - 12, 8, 8);
-  }
-}
-
-class Obstacle {
-  constructor(speedMultiplier) {
-    this.width = 60;
-    this.height = 22;
-
-    this.x =
-      ROAD_LEFT +
-      10 +
-      Math.random() * (ROAD_RIGHT - ROAD_LEFT - this.width - 20);
-
-    this.y = -40;
-
-    this.speed = 5 + speedMultiplier;
-
-    this.color = "#f59e0b";
-  }
-
-  update() {
-    this.y += this.speed;
-  }
-
-  draw() {
-    ctx.fillStyle = this.color;
-    roundRect(this.x, this.y, this.width, this.height, 8);
-
-    ctx.fillStyle = "#111";
-    for (let i = 0; i < 5; i++) {
-      ctx.fillRect(this.x + 8 + i * 10, this.y + 4, 4, 14);
-    }
-  }
-}
-
-class Game {
+class Player extends Car {
   constructor() {
-    this.input = new InputHandler();
-    this.player = new PlayerCar();
-
-    this.enemyCars = [];
-    this.obstacles = [];
-    this.particles = [];
-
+    super(canvas.width / 2 - 25, 650, "#00ffd5");
     this.score = 0;
-    this.highScore = localStorage.getItem("velocityRushHighScore") || 0;
-
-    this.gameSpeed = 6;
-
-    this.spawnTimer = 0;
-    this.spawnInterval = 70;
-
-    this.roadOffset = 0;
-
-    this.running = false;
-
-    highScoreEl.textContent = this.highScore;
-  }
-
-  start() {
-    this.reset();
-
-    this.running = true;
-
-    mainMenu.classList.remove("active");
-    gameOverMenu.classList.remove("active");
-
-    this.loop();
-  }
-
-  reset() {
-    this.player = new PlayerCar();
-
-    this.enemyCars = [];
-    this.obstacles = [];
-    this.particles = [];
-
-    this.score = 0;
-    this.gameSpeed = 6;
-
-    this.spawnInterval = 70;
-    this.spawnTimer = 0;
-  }
-
-  gameOver() {
-    this.running = false;
-
-    cancelAnimationFrame(animationId);
-
-    if (this.score > this.highScore) {
-      this.highScore = Math.floor(this.score);
-
-      localStorage.setItem(
-        "velocityRushHighScore",
-        this.highScore
-      );
-
-      highScoreEl.textContent = this.highScore;
-    }
-
-    createExplosion(
-      this.player.x + this.player.width / 2,
-      this.player.y + this.player.height / 2
-    );
-
-    finalScoreEl.textContent = Math.floor(this.score);
-
-    setTimeout(() => {
-      gameOverMenu.classList.add("active");
-    }, 600);
+    this.distance = 0;
   }
 
   update() {
-    this.player.update(this.input);
+    if (keys.left) {
+      this.x -= this.speed;
+    }
 
-    this.roadOffset += this.gameSpeed;
+    if (keys.right) {
+      this.x += this.speed;
+    }
 
-    this.score += 0.12;
+    // Boundaries
+    if (this.x < road.x + 10) {
+      this.x = road.x + 10;
+    }
 
-    // Difficulty Scaling
-    this.gameSpeed = 6 + this.score / 120;
+    if (this.x + this.width > road.x + road.width - 10) {
+      this.x = road.x + road.width - 10 - this.width;
+    }
 
-    this.spawnInterval = Math.max(
-      24,
-      70 - this.score / 25
+    // Smoke particles
+    particles.push(
+      new Particle(
+        this.x + 15,
+        this.y + this.height,
+        "#888",
+        Math.random() * 3 + 1,
+        (Math.random() - 0.5) * 1.5,
+        Math.random() * 2 + 1,
+        40
+      )
     );
 
-    this.spawnTimer++;
-
-    if (this.spawnTimer >= this.spawnInterval) {
-      this.spawnEntities();
-      this.spawnTimer = 0;
-    }
-
-    this.enemyCars.forEach((enemy, index) => {
-      enemy.update();
-
-      if (checkCollision(this.player, enemy)) {
-        this.gameOver();
-      }
-
-      if (enemy.y > GAME_HEIGHT + 120) {
-        this.enemyCars.splice(index, 1);
-      }
-    });
-
-    this.obstacles.forEach((obstacle, index) => {
-      obstacle.update();
-
-      if (checkCollision(this.player, obstacle)) {
-        this.gameOver();
-      }
-
-      if (obstacle.y > GAME_HEIGHT + 100) {
-        this.obstacles.splice(index, 1);
-      }
-    });
-
-    this.particles.forEach((particle, index) => {
-      particle.update();
-
-      if (particle.life <= 0) {
-        this.particles.splice(index, 1);
-      }
-    });
-
-    scoreEl.textContent = Math.floor(this.score);
-    speedEl.textContent = this.gameSpeed.toFixed(1);
-  }
-
-  drawRoad() {
-    // Grass
-    ctx.fillStyle = "#0a4725";
-    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    // Road
-    ctx.fillStyle = "#242833";
-    ctx.fillRect(
-      ROAD_LEFT,
-      0,
-      ROAD_RIGHT - ROAD_LEFT,
-      GAME_HEIGHT
+    particles.push(
+      new Particle(
+        this.x + 35,
+        this.y + this.height,
+        "#888",
+        Math.random() * 3 + 1,
+        (Math.random() - 0.5) * 1.5,
+        Math.random() * 2 + 1,
+        40
+      )
     );
-
-    // Road Borders
-    ctx.fillStyle = "#ffef5a";
-
-    ctx.fillRect(ROAD_LEFT - 6, 0, 6, GAME_HEIGHT);
-    ctx.fillRect(ROAD_RIGHT, 0, 6, GAME_HEIGHT);
-
-    // Lane Strips
-    ctx.fillStyle = "#ffffff";
-
-    const laneX = GAME_WIDTH / 2 - 4;
-    const stripHeight = 45;
-    const gap = 28;
-
-    for (let y = -60; y < GAME_HEIGHT + 60; y += stripHeight + gap) {
-      ctx.fillRect(
-        laneX,
-        y + (this.roadOffset % (stripHeight + gap)),
-        8,
-        stripHeight
-      );
-    }
-  }
-
-  draw() {
-    ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    this.drawRoad();
-
-    this.player.draw();
-
-    this.enemyCars.forEach((enemy) => enemy.draw());
-
-    this.obstacles.forEach((obstacle) => obstacle.draw());
-
-    this.particles.forEach((particle) => particle.draw());
-  }
-
-  spawnEntities() {
-    const chance = Math.random();
-
-    if (chance < 0.72) {
-      this.enemyCars.push(
-        new EnemyCar(this.gameSpeed * 0.25)
-      );
-    } else {
-      this.obstacles.push(
-        new Obstacle(this.gameSpeed * 0.2)
-      );
-    }
-  }
-
-  loop() {
-    if (!this.running) return;
-
-    this.update();
-    this.draw();
-
-    animationId = requestAnimationFrame(() => this.loop());
   }
 }
 
-const game = new Game();
+class Enemy extends Car {
+  constructor(x, speed, color) {
+    super(x, -120, color);
+    this.speed = speed;
+  }
 
-function randomCarColor() {
+  update() {
+    this.y += this.speed;
+  }
+}
+
+const player = new Player();
+
+function resizeCanvas() {
+  const ratio = canvas.width / canvas.height;
+
+  let newWidth = window.innerWidth;
+  let newHeight = window.innerHeight;
+
+  if (newWidth / newHeight > ratio) {
+    newWidth = newHeight * ratio;
+  } else {
+    newHeight = newWidth / ratio;
+  }
+
+  canvas.style.width = `${newWidth}px`;
+  canvas.style.height = `${newHeight}px`;
+}
+
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+function drawRoad() {
+  ctx.fillStyle = "#2c2c2c";
+  ctx.fillRect(road.x, 0, road.width, canvas.height);
+
+  // Road borders
+  ctx.fillStyle = "#ffffff";
+
+  ctx.fillRect(road.x, 0, 6, canvas.height);
+  ctx.fillRect(road.x + road.width - 6, 0, 6, canvas.height);
+
+  // Middle lines
+  road.lineOffset += gameSpeed;
+
+  if (road.lineOffset > 80) {
+    road.lineOffset = 0;
+  }
+
+  for (let y = -80; y < canvas.height; y += 80) {
+    ctx.fillRect(
+      canvas.width / 2 - 6,
+      y + road.lineOffset,
+      12,
+      45
+    );
+  }
+}
+
+function spawnEnemy() {
+  const laneWidth = road.width / 3;
+
+  const lane = Math.floor(Math.random() * 3);
+
+  const x =
+    road.x +
+    laneWidth * lane +
+    laneWidth / 2 -
+    25;
+
   const colors = [
-    "#ff375f",
-    "#ffcc00",
-    "#7c4dff",
-    "#22c55e",
-    "#ff7a00",
-    "#ffffff"
+    "#ff4040",
+    "#ffd000",
+    "#8e44ff",
+    "#00a2ff",
+    "#ff7b00"
   ];
 
-  return colors[Math.floor(Math.random() * colors.length)];
-}
+  const speed = gameSpeed + Math.random() * 2 + 2;
 
-function checkCollision(a, b) {
-  return (
-    a.x < b.x + b.width &&
-    a.x + a.width > b.x &&
-    a.y < b.y + b.height &&
-    a.y + a.height > b.y
+  enemies.push(
+    new Enemy(
+      x,
+      speed,
+      colors[Math.floor(Math.random() * colors.length)]
+    )
   );
 }
 
-function roundRect(x, y, width, height, radius) {
+function updateEnemies() {
+  enemies.forEach((enemy, index) => {
+    enemy.update();
+    enemy.draw();
+
+    if (enemy.y > canvas.height + 100) {
+      enemies.splice(index, 1);
+    }
+
+    // Collision Detection
+    if (
+      player.x < enemy.x + enemy.width &&
+      player.x + player.width > enemy.x &&
+      player.y < enemy.y + enemy.height &&
+      player.y + player.height > enemy.y
+    ) {
+      createCrashEffect();
+      gameOver();
+    }
+  });
+}
+
+function updateParticles() {
+  particles.forEach((particle, index) => {
+    particle.update();
+    particle.draw();
+
+    if (particle.life <= 0) {
+      particles.splice(index, 1);
+    }
+  });
+}
+
+function createCrashEffect() {
+  for (let i = 0; i < 80; i++) {
+    particles.push(
+      new Particle(
+        player.x + player.width / 2,
+        player.y + player.height / 2,
+        i % 2 === 0 ? "#ff4040" : "#ffaa00",
+        Math.random() * 5 + 2,
+        (Math.random() - 0.5) * 8,
+        (Math.random() - 0.5) * 8,
+        50
+      )
+    );
+  }
+}
+
+let gameSpeed = 4;
+
+function updateDifficulty() {
+  gameSpeed = 4 + player.score / 400;
+
+  speedEl.textContent = gameSpeed.toFixed(1);
+}
+
+function updateScore() {
+  player.score += Math.floor(gameSpeed);
+  scoreEl.textContent = player.score;
+}
+
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawRoad();
+
+  player.update();
+  player.draw();
+
+  spawnTimer++;
+
+  const spawnRate = Math.max(25, 70 - Math.floor(player.score / 300));
+
+  if (spawnTimer >= spawnRate) {
+    spawnEnemy();
+    spawnTimer = 0;
+  }
+
+  updateEnemies();
+  updateParticles();
+
+  updateScore();
+  updateDifficulty();
+
+  animationId = requestAnimationFrame(gameLoop);
+}
+
+function resetGame() {
+  enemies = [];
+  particles = [];
+
+  player.x = canvas.width / 2 - 25;
+  player.score = 0;
+
+  gameSpeed = 4;
+  spawnTimer = 0;
+
+  scoreEl.textContent = "0";
+  speedEl.textContent = "1";
+}
+
+function startGame() {
+  resetGame();
+
+  mainMenu.classList.remove("active");
+  gameOverMenu.classList.remove("active");
+
+  gameRunning = true;
+
+  cancelAnimationFrame(animationId);
+  gameLoop();
+}
+
+function gameOver() {
+  gameRunning = false;
+
+  cancelAnimationFrame(animationId);
+
+  finalScoreEl.textContent = player.score;
+
+  if (player.score > highScore) {
+    localStorage.setItem("turboHighScore", player.score);
+    highScoreEl.textContent = player.score;
+  }
+
+  gameOverMenu.classList.add("active");
+}
+
+function roundRect(ctx, x, y, width, height, radius, fill) {
   ctx.beginPath();
 
   ctx.moveTo(x + radius, y);
@@ -462,55 +423,62 @@ function roundRect(x, y, width, height, radius) {
 
   ctx.closePath();
 
-  ctx.fill();
-}
-
-function createSmoke(x, y) {
-  if (Math.random() > 0.35) return;
-
-  game.particles.push(
-    new Particle(
-      x + (Math.random() - 0.5) * 20,
-      y,
-      "rgba(220,220,220,0.8)",
-      (Math.random() - 0.5) * 1.2,
-      Math.random() * 1.5,
-      2 + Math.random() * 4,
-      22
-    )
-  );
-}
-
-function createExplosion(x, y) {
-  for (let i = 0; i < 80; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = Math.random() * 6;
-
-    game.particles.push(
-      new Particle(
-        x,
-        y,
-        Math.random() > 0.5 ? "#ff6600" : "#ffcc00",
-        Math.cos(angle) * speed,
-        Math.sin(angle) * speed,
-        2 + Math.random() * 5,
-        45 + Math.random() * 30
-      )
-    );
+  if (fill) {
+    ctx.fill();
   }
 }
 
-startBtn.addEventListener("click", () => {
-  game.start();
+/* Keyboard Controls */
+window.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+    keys.left = true;
+  }
+
+  if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+    keys.right = true;
+  }
 });
 
-restartBtn.addEventListener("click", () => {
-  game.start();
+window.addEventListener("keyup", (e) => {
+  if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+    keys.left = false;
+  }
+
+  if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+    keys.right = false;
+  }
 });
 
-function renderStartScreenBackground() {
-  game.draw();
-  requestAnimationFrame(renderStartScreenBackground);
-}
+/* Mobile Buttons */
+leftBtn.addEventListener("touchstart", () => {
+  keys.left = true;
+});
 
-renderStartScreenBackground();
+leftBtn.addEventListener("touchend", () => {
+  keys.left = false;
+});
+
+rightBtn.addEventListener("touchstart", () => {
+  keys.right = true;
+});
+
+rightBtn.addEventListener("touchend", () => {
+  keys.right = false;
+});
+
+/* Touch Drag Support */
+canvas.addEventListener("touchmove", (e) => {
+  if (!gameRunning) return;
+
+  const rect = canvas.getBoundingClientRect();
+
+  const touchX = e.touches[0].clientX - rect.left;
+
+  const scaleX = canvas.width / rect.width;
+
+  player.x = touchX * scaleX - player.width / 2;
+});
+
+/* Buttons */
+startBtn.addEventListener("click", startGame);
+restartBtn.addEventListener("click", startGame);
